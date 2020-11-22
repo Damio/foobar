@@ -1,6 +1,7 @@
 """
 Docstring for the class
 """
+import csv
 
 
 class FoobarClass:
@@ -69,13 +70,36 @@ class FoobarClass:
         """
         The data should be read from the csv file supplied
         """
-        pass
+        email_list = []
+        with open('student_responses.csv', 'r',) as file:
+            reader = csv.reader(file, delimiter = '\t')
+            for row in reader:
+                # read the data for each student
+                student_response = row[0].split(",")
+                student_email = student_response[-1]
+                # check for test email
+                if student_email != "test@test.com":
+                    if student_email not in email_list:
+                        # add the email to the list
+                        email_list.append(student_email)
+                        student_card = student_response[:-1]
+                        # call the transform_card_order_to_string function using self
+                        student_card_str = self.transform_card_order_to_string(student_card)
+                        # call the levensthein function on the string to get score
+                        score = self.levenshtein_score(student_card_str)
 
-    def compute_score(self):
+                        
+
+        
+
+    def compute_score(self, card_str, lev_score):
         """
         Each correct card is worth 4 points.  Each incorrect card should subtract 1 point.
         Scores less than zero should be scored as zero
         """
+
+
+
         pass
 
     def write_student_scores(self):
@@ -84,3 +108,6 @@ class FoobarClass:
         <student id>, <raw score>, <percentage correct>
         """
         pass
+
+one_class = FoobarClass()
+one_class.read_data()
