@@ -2,6 +2,7 @@
 Docstring for the class
 """
 import csv
+import numpy as np
 
 
 class FoobarClass:
@@ -66,48 +67,136 @@ class FoobarClass:
 
         return output_string
 
-    def read_data(self):
-        """
-        The data should be read from the csv file supplied
-        """
-        email_list = []
-        with open('student_responses.csv', 'r',) as file:
-            reader = csv.reader(file, delimiter = '\t')
-            for row in reader:
-                # read the data for each student
-                student_response = row[0].split(",")
-                student_email = student_response[-1]
-                # check for test email
-                if student_email != "test@test.com":
-                    if student_email not in email_list:
-                        # add the email to the list
-                        email_list.append(student_email)
-                        student_card = student_response[:-1]
-                        # call the transform_card_order_to_string function using self
-                        student_card_str = self.transform_card_order_to_string(student_card)
-                        # call the levensthein function on the string to get score
-                        score = self.levenshtein_score(student_card_str)
-
-                        
 
         
 
-    def compute_score(self, card_str, lev_score):
+class FoobarChildClass(FoobarClass):
+    """
+        A child class of Foobar tha inherits all its properties
+        This is done according to the instructions
+        1. Reads the csv data
+        2. Scores the card sorting
+        3. Writes the results for each student to a new CSV file
+        4. Prints the average and standard deviation of the student raw scores
+    """
+    
+    
+    def __init__(self, read_path, write_path):
+        FoobarClass.__init__(self)
+        self.filepath_r = read_path # path to read file
+        self.filepath_w = write_path # path to write file
+        self.email_list = []
+        self.scores_list = []
+    
+    def read_data(self):
         """
-        Each correct card is worth 4 points.  Each incorrect card should subtract 1 point.
+        1. Reads the csv data
+        The data should be read from the csv file supplied
+        """
+        data_list = []
+        
+        with open(self.filepath_r, 'r',) as file:
+            reader = csv.reader(file, delimiter = '\t')
+            for row in reader:
+                # read the data for each student
+                data_list.append(row)
+        return data_list
+
+        
+
+    def compute_score(self, str_len, lev_score):
+        """
+        2. Scores the card sorting
+        Each correct card is worth 4 points.  Each incorrect card should subtract 1 point(Readme says 2 points).
         Scores less than zero should be scored as zero
         """
+        # no. of cards minus lev_score i.e the number of incorrect cards
+        correct_cards = str_len - lev_score
 
+        # student final score
+        final_score = (correct_cards * 4) - (lev_score * 2)
+        # check for scores less than zero
+        if final_score < 0:
+            final_score = 0
+        
+        # calc score percentage
+        stu_perc = round(final_score/20, 2)
+        # add this score to the list of scores - will be used 
+        # to calculate mean and std later
+        self.scores_list.append(final_score)
 
+        return final_score, stu_perc
 
-        pass
-
-    def write_student_scores(self):
+    def write_student_scores(self, row_list):
         """
+        3. Writes the results for each student to a new CSV file
         The output format of the csv file should be:
         <student id>, <raw score>, <percentage correct>
         """
-        pass
+        with open(self.filepath_w, 'w', newline='') as file:
+            writer = csv.writer(file)
+            writer.writerows(row_list)
 
-one_class = FoobarClass()
-one_class.read_data()
+    def check_each_row(self, row):
+        """
+        This function performs checks on the emails for duplicte and test data
+        """
+        student_email = row[-1]
+        # check for test email
+        if student_email != "test@test.com":
+            if student_email not in self.email_list:
+                # add the email to the list
+                self.email_list.append(student_email)
+                return True
+        return False
+    
+    def avg_and_sd(self):
+        """
+        4. Prints the average and standard deviation of the student raw scores
+        """
+        mean = round(np.mean(self.scores_list), 2)
+        std = round(np.std(self.scores_list), 2)
+        
+        # print results
+        print ({"mean": mean, "std_dev": std})
+
+
+
+# Test code
+read_path = 'student_responses.csv'
+write_path = 'final_scores.csv'
+#initialize class
+test_run = FoobarChildClass(read_path, write_path)
+row_list = test_run.read_data()
+# to be sent to write functio
+final_result_list = []
+
+# Loop through the rows in csv and extract expected results
+for row in row_list:
+    student_response = row[0].split(",")
+    # perform checks for duplicates and test data
+    if test_run.check_each_row(student_response):
+        # extract everything aasides the email
+        student_card = student_response[:-1]
+        # call the transform_card_order_to_string function using self
+        student_card_str = test_run.transform_card_order_to_string(student_card)
+        # call the levensthein function on the string to get score
+        lev_score = test_run.levenshtein_score(student_card_str)
+        # compute score and percentage
+        raw_score, perc = test_run.compute_score(len(student_card_str), lev_score)
+        # append res to final_result_list
+        final_result_list.append([student_response[-1], raw_score, perc])
+        
+
+# write the list to csv
+test_run.write_student_scores(final_result_list)
+
+
+# Get the mean and std.dev and print
+mean_std = test_run.avg_and_sd()
+
+"""
+Things to note:
+These script assume that there are no typographical errors i.e("palptine@council.org" != "palpatine@council.org")
+
+"""
